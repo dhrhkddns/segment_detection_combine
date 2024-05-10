@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Execute dotlottie-player Based on Variable Value</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+  <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+  <style>
+    /* html 및 body 요소의 여백 제거 및 배경색 설정 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: black; /* 배경색 검은색으로 설정 */
+    }
+
+    /* lottieContainer 요소의 크기 설정 */
+    #lottieContainer {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <!-- Container for dotlottie-player -->
+  <canvas id="lottieContainer"></canvas>
+
+  <script type="module">
+    import { DotLottie } from "https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-web/+esm";  
+    var dotLottie = new DotLottie({
+    speed:1,
+    canvas: document.querySelector('#lottieContainer'),
+    src: "https://lottie.host/071cccc3-b83e-4457-8bed-3fca907267cf/NSduZlXklu.json", // or .json file
+  });
+    var myVariable1 = 1; // 전역 변수로 선언
+    var lottieContainer = document.getElementById('lottieContainer');
+    var success_time; 
+
+    $(document).ready(function(){
+      setInterval(function(){
+        $.ajax({
+          url: '/golf_score',  // 요청을 보낼 URL
+          type: 'GET',   // HTTP 메소드
+          success: function(what) {  // 응답 받았을 때 실행될 함수
+            // '#age' 요소의 텍스트를 서버로부터 받아온 'age' 값으로 설정
+            myVariable1 = what; // 전역 변수 값 변경
+            success_time = Date.now(); // 측정 종료  
+            console.log("받은 값: "+what);
+            
+            if (myVariable1 == 1) {
+              if (dotLottie.isPlaying == false){
+                dotLottie.play()
+                console.log('재생 중인지 여부:', dotLottie.isPlaying);
+              }    
+            }
+          }
+        });
+      }, 100);  // 0.1초마다 함수 실행
+    });  
+  
+    // complete 이벤트 핸들러 등록
+    dotLottie.addEventListener('complete', function(){
+      console.log("애니메이션 끝남"); // complete 이벤트 발생 시 콘솔에 1 출력
+      $.ajax({url: "/animation_complete", type: "POST", contentType: "application/json", data: JSON.stringify({data: 0}), dataType: "json", success: response => console.log("Response from server:", response), error: (xhr, status, error) => console.error("Error:", error)});
+    });
+  </script>
+</body>
+</html>

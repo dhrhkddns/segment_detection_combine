@@ -1,0 +1,16 @@
+description: Ultralytics detect_300times_golf_best model trained on /content/data.yaml
+author: Ultralytics
+date: '2024-04-03T18:54:30.089293'
+version: 8.1.42
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: golf_ball
+  1: green_zone
+  2: hole

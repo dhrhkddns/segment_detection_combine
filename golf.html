@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Animation</title>
+    <!-- dotlottie-player 라이브러리 스크립트 추가 -->
+    <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+    <style>
+        /* html과 body 요소의 배경색을 검은색으로 설정 */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: black;
+        }
+        /* dotlottie-player 요소를 화면에 꽉 차게 설정 */
+        dotlottie-player {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Lottie 애니메이션을 표시할 dotlottie-player 요소 추가 -->
+    <dotlottie-player src="https://lottie.host/071cccc3-b83e-4457-8bed-3fca907267cf/NSduZlXklu.json" background="transparent" speed="1" autoplay></dotlottie-player>
+</body>
+</html>

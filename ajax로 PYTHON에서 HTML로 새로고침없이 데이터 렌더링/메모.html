@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottie Animation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.7.10/lottie.min.js"></script>
+</head>
+<body>
+    <!-- 애니메이션을 표시할 요소 -->
+    <div id="lottiePlayer" style="width: 200px; height: 200px;"></div>
+
+    <script>
+        // 애니메이션 플레이어 요소 가져오기
+        var lottiePlayer = document.getElementById('lottiePlayer');
+
+        // Lottie 애니메이션 로드
+        var animation = bodymovin.loadAnimation({
+            container: lottiePlayer, // 애니메이션을 표시할 DOM 요소
+            renderer: 'svg',
+            loop: false,
+            autoplay: false,
+            path: 'https://lottie.host/071cccc3-b83e-4457-8bed-3fca907267cf/NSduZlXklu.json' // 애니메이션 JSON 파일 경로
+        });
+
+        animation.load();
+    </script>
+</body>
+</html>

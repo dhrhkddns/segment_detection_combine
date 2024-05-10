@@ -1,0 +1,14 @@
+names:
+- golf_ball
+- green_zone
+- hole
+nc: 3
+roboflow:
+  license: CC BY 4.0
+  project: golf-ball-detection-2-seg
+  url: https://universe.roboflow.com/appleroot-zk4px/golf-ball-detection-2-seg/dataset/9
+  version: 9
+  workspace: appleroot-zk4px
+test: ../test/images
+train: GOLF-BALL-DETECTION-2-(seg)-9/train/images
+val: GOLF-BALL-DETECTION-2-(seg)-9/valid/images

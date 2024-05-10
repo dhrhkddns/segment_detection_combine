@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AJAX Example</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    
+    <!-- svg나 다른 파일 templates 혹은 static 파일등. "특정 폴더"를 만들고 거기에 넣어줘야 함!!! 그냥 해당 절대경로, 상대경로 안 먹힘.... -->
+    
+    <!--골 때리는게 왜... static안에 있으니까 그냥 초록.svg로 하면 안 먹힘... static/초록.svg로 확인사살을 해야 됨. (그렇다고 render_template()은 index.html로 파일만 입력해도 됨... 이해가 안된다 그냥 받아들이는 수밖에)-->
+    <style>
+        body {
+            background-image: url('/static/초록.svg');
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+        .first_hole img {
+            /* GIF 이미지의 크기 조절 (필요에 따라 변경) */
+            position: absolute; 
+            width: 700px;
+            height: 700px;
+            
+            /* GIF 이미지의 위치 지정*/
+            top: 1000px;
+            left: 2500px;
+        }
+    </style>
+        
+</head>
+<body>
+    <h1 id="age">Loading...</h1>
+    <h2 id="gwang">something missing</h2>
+    <!-- <img src="초록.svg" alt="Description of image"> -->
+    <script>
+        $(document).ready(function(){
+            setInterval(function(){
+                $.ajax({
+                    url: '/data',  // 요청을 보낼 URL
+                    type: 'GET',   // HTTP 메소드
+                    success: function(what) {  // 응답 받았을 때 실행될 함수
+                        // '#age' 요소의 텍스트를 서버로부터 받아온 'age' 값으로 설정
+                        $('#age').text('city: ' + what.name);
+                    }
+                });
+            }, 1000);  // 5000 밀리초(5초)마다 함수 실행
+           
+            setInterval(function(){
+                $.ajax({
+                    url: '/gwangun',  // 요청을 보낼 URL
+                    type: 'GET',   // HTTP 메소드
+                    success: function(오광운) {  // 응답 받았을 때 실행될 함수
+                        // '#age' 요소의 텍스트를 서버로부터 받아온 'age' 값으로 설정
+                        $('#gwang').text('hmmmm: ' + 오광운);
+                    }
+                });
+            }, 100);  // 5000 밀리초(5초)마다 함수 실행
+
+            setInterval(function(){
+                $.ajax({
+                    url: '/golf_score',  // 요청을 보낼 URL
+                    type: 'GET',   // HTTP 메소드
+                    success: function(golf) {  // 응답 받았을 때 실행될 함수
+                        $('div img').hide()
+                        $(`#${golf}_1`).show().css('opacity', '0.9');
+                    }
+                });
+            }, 100);  // 5000 밀리초(5초)마다 함수 실행
+        });
+    </script>
+
+    <div class="first_hole">
+        <!-- GIF 이미지 삽입 -->
+        <img id= "1_1" src="/static/one.gif" style="opacity: 1;" >
+        <img id= "2_1" src="/static/two.gif" style="opacity: 1;">
+        <img id= "3_1" src="/static/three.gif" style="opacity: 1;">
+        <img id= "4_1" src="/static/four.gif" style="opacity: 1;">
+        <img id= "5_1" src="/static/five.gif" style="opacity: 1;">
+        <img id= "6_1" src="/static/six.gif" style="opacity: 1;">
+        <img id= "7_1" src="/static/seven.gif" style="opacity: 1;">
+        <img id= "8_1" src="/static/eight.gif" style="opacity: 1;">
+        <img id= "9_1" src="/static/nine.gif" style="opacity: 1;">
+    </div>
+
+    <div class="second_hole">
+        <!-- GIF 이미지 삽입 -->
+        <img id= "1_2" src="/static/one.gif" style="opacity: 0;" >
+        <img id= "2_2" src="/static/two.gif" style="opacity: 0;">
+        <img id= "3_2" src="/static/three.gif" style="opacity: 0;">
+        <img id= "4_2" src="/static/four.gif" style="opacity: 0;">
+        <img id= "5_2" src="/static/five.gif" style="opacity: 0;">
+        <img id= "6_2" src="/static/six.gif" style="opacity: 0;">
+        <img id= "7_2" src="/static/seven.gif" style="opacity: 0;">
+        <img id= "8_2" src="/static/eight.gif" style="opacity: 0;">
+        <img id= "9_2" src="/static/nine.gif" style="opacity: 0;">
+    </div>
+
+
+</body>
+</html>
