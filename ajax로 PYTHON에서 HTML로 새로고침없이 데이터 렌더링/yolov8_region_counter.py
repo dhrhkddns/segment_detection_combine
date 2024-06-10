@@ -30,9 +30,18 @@ def golf_sound(): #홀 안에 들어갔을때
     sound.play()
     while pygame.mixer.get_busy():
         continue
-
-
+def golf_out_sound(): #골프공이 그린존 바깥으로 벗어났을 때
+    sound = pygame.mixer.Sound("jazzy_fail.wav")
+    sound.play()
+    while pygame.mixer.get_busy():
+        continue
+def ready_putting(): #준비됐으면 퍼팅! 사운드
+    sound = pygame.mixer.Sound("ready_putting.wav")
+    sound.play()
+    while pygame.mixer.get_busy():
+        continue
 current_region = None
+
 counting_regions = [
     {
          'name': 'small_hall',
@@ -68,6 +77,15 @@ counting_regions = [
          'dragging': False,
          'region_color': (0, 0, 0),  # BGR Value 검은색
          'text_color': (255, 255, 255),  # Region Text Color
+         'in' : False
+    },
+    {
+         'name': 'double_check',
+         'polygon': Polygon([(129, 179), (129, 199), (149, 199), (149, 179)]),  # Polygon points
+         'counts': 0,
+         'dragging': False,
+         'region_color': (255, 255, 255),  # BGR Value 흰색
+         'text_color': (0, 0, 0),  # Region Text Color
          'in' : False
     } ]
 
@@ -109,7 +127,7 @@ def mouse_callback(event, x, y, flags, param):
 #the end
 
 def run(
-    weights=r"C:\Users\omyra\OneDrive\바탕 화면\segment_detection_합치기_프로젝트\detect_300times_golf_best_openvino_model",
+    weights=r"C:\Users\omyra\OneDrive\바탕 화면\segment_detection_combine\detect_300times_golf_best_openvino_model",
     source=1,
     device="cpu",
     view_img=True,
@@ -138,6 +156,12 @@ def run(
     model = YOLO(f"{weights}")
     # model.to("cuda") if device == "0" else model.to("cpu")
     model_greenzone = YOLO(r'segment_100times_golf_best_openvino_model',task='segment')
+
+    model_ball = YOLO('detect_300times_golf_best_openvino_model')
+
+    ball_prepare = []
+    once = 0
+    sound = 0
 
     small_center = None
     big_center = None
@@ -174,21 +198,26 @@ def run(
         #     counting_regions[2]['polygon']= results_greenzone[0].masks.xy[0] 
 
         # 이거는 golf_ball
-        results = model.track(frame, persist=True,classes=2,conf=0.5,verbose=False)
+        results_holes = model.track(frame, persist=True,classes=2,conf=0.5,verbose=False)
         results_greenzone = model_greenzone.track(source=frame,classes=1,conf=0.7,verbose=False)
         
-        if results[0].boxes.id is not None and results_greenzone[0].masks is not None:
-            boxes = results[0].boxes.xyxy.cpu().tolist()
-            track_ids = results[0].boxes.id.int().cpu().tolist()
-            # print(f"track_ids: {track_ids}")
-            clss = results[0].boxes.cls.cpu().tolist()
+        results_ball = model_ball.track(frame, persist=True,classes=0,conf=0.5,max_det = 1, verbose=False)
+        ball = results_ball[0].boxes.xyxy.cpu().tolist()
+                                                                            
+        try:  
+            ball_center = int((ball[0][0] + ball[0][2]) / 2), int((ball[0][1] + ball[0][3]) / 2)
+        except (IndexError, TypeError):
+            ball_center = None  # or some default value or behavior
+        
+        print(Fore.GREEN + str(ball_center))
+        print("------------")
+        
+        if results_holes[0].boxes.id is not None and results_greenzone[0].masks is not None:
+            boxes = results_holes[0].boxes.xyxy.cpu().tolist()
+            track_ids = results_holes[0].boxes.id.int().cpu().tolist()
+            clss = results_holes[0].boxes.cls.cpu().tolist()
            
-            with open("polygon_annotate.txt", "r") as a:
-                content = int(a.read())
-            
-
             # print(small_center_hsv)
-
             try:
                 small_surrounding_pixels_hsv = [cv2.cvtColor(np.uint8([[frame[y, x]]]), cv2.COLOR_BGR2HSV)[0][0][2] for y in range(small_center[1] - 1, small_center[1] + 2) for x in range(small_center[0] - 1, small_center[0] + 2)]
                 big_surrounding_pixels_hsv = [cv2.cvtColor(np.uint8([[frame[y, x]]]), cv2.COLOR_BGR2HSV)[0][0][2] for y in range(big_center[1] - 3, big_center[1] + 4) for x in range(big_center[0] - 3, big_center[0] + 4)]
@@ -197,22 +226,86 @@ def run(
                 small_surrounding_pixels_hsv = []
                 big_surrounding_pixels_hsv = []
 
+            
+            #공이 준비 영역에 들어갔을때
+            if ball_center is not None and ball_center[0] is not None and ball_center[1] is not None:
+                ball_prepare.append(1 if counting_regions[3]['polygon'].contains(Point((ball_center[0], ball_center[1]))) else 0)
 
-            # 결과 출력
-            if sum(small_surrounding_pixels_hsv) >= 500:
-                print(Fore.RED + str(sum(small_surrounding_pixels_hsv)))
-                golf_sound()
-            else:
-                #print("작은 홀 합:" + str(sum(small_surrounding_pixels_hsv)))
-                #print()
-                pass
-            if sum(big_surrounding_pixels_hsv) >= 5000:
-                print(Fore.GREEN + str(sum(big_surrounding_pixels_hsv)))
-                golf_sound()
-            else:
-                #print("큰 홀 합:" + str(sum(big_surrounding_pixels_hsv)))
-                #print()
-                pass
+            if len(ball_prepare) > 10:
+                ball_prepare.pop(0)
+            
+            if len(ball_prepare) == 10 and once == 0:
+                
+                if ball_prepare.count(1) == 10:
+                    # counting_regions[3]['polygon'] = None
+                    print(Fore.LIGHTBLUE_EX + "준비 완료!")
+                    
+                    if sound == 0:
+                        ready_putting()
+                        sound = 1
+                    ready = True
+
+            
+
+            #공을 준비 상태에서 쳤을때
+            if ready == True:
+                
+                if ball_prepare[-1] == 0 or once == 1:
+                    once = 1
+                    
+                    print(Fore.LIGHTRED_EX + "준비한다음 움직였다!! 판단해~~~")
+
+                    if sum(small_surrounding_pixels_hsv) >= 700:
+                        print(Fore.RED + str(sum(small_surrounding_pixels_hsv)))
+                        
+                        with open("shared_value.txt", "w") as a:
+                            a.write("1")
+                        
+
+                    if sum(big_surrounding_pixels_hsv) >= 5000:
+                        print(Fore.GREEN + str(sum(big_surrounding_pixels_hsv)))
+                        
+                        with open("shared_value.txt", "w") as a:
+                            a.write("1")
+                        
+
+                    
+                    if ball_center is not None and counting_regions[4]['polygon'].contains(Point((ball_center[0], ball_center[1]))) == True:
+                        print(Fore.WHITE + "하얀 영역 들어감")
+                        with open("shared_value.txt", "r") as a:
+                            in_or_out = int(a.read())
+                        
+                        if in_or_out == 1:
+                            
+                            golf_sound()
+                            
+                            with open("shared_value.txt", "w") as a:
+                                a.write("0")
+
+                            ready, once, sound = False, 0, 0
+                            
+                    elif ball_center is not None and counting_regions[2]['polygon'].contains(Point((ball_center[0], ball_center[1]))) == False:
+                        
+                        frame[ball_center[1], ball_center[0]] = (0, 0, 255)
+                        
+                        golf_out_sound()
+                        print(Fore.BLUE + "공 나감")
+
+                        with open("shared_value.txt", "w") as a:
+                            a.write("0")
+                        
+                        ready, once, sound = False, 0, 0
+                    
+
+            
+
+            
+
+
+            with open("polygon_annotate.txt", "r") as a:
+                content = int(a.read())
+            
+            # 마우스 클릭으로 자동 영역 조정
             if content == 1:
                 boxes[0], boxes[1] = method_list.sort(boxes)
 
@@ -252,71 +345,68 @@ def run(
                 #track = track_history[track_id]  # Tracking Lines plot
                 track_lst.append((float(bbox_center[0]), float(bbox_center[1])))
 
-                if counting_regions[0]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))) or counting_regions[1]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))):
-                    #print(Fore.RED + "공 들어갔음!!!")
-                    with open("shared_value.txt", "w") as a:
-                        a.write("1")
+                    
                     
 
-                if len(track_lst) > 30:
-                    track_lst.pop(0)
-                points = np.hstack(track_lst).astype(np.int32).reshape((-1, 1, 2))
-                #cv2.polylines(frame, [points], isClosed=False, color=colors(cls, True), thickness=track_thickness)
+                # if len(track_lst) > 30:
+                #     track_lst.pop(0)
+                # points = np.hstack(track_lst).astype(np.int32).reshape((-1, 1, 2))
+                # #cv2.polylines(frame, [points], isClosed=False, color=colors(cls, True), thickness=track_thickness)
 
-                if len(track_lst) == 30:
-                    distance = sum(((track_lst[i][0] - track_lst[i+1][0]) ** 2 + (track_lst[i][1] - track_lst[i+1][1]) ** 2) ** 0.5 for i in range(len(track_lst)-1))
-                    #print(int(distance))
-                    if distance < 15:
-                        공_움직임 = False
-                    else:
-                        공_움직임 = True
+                # if len(track_lst) == 30:
+                #     distance = sum(((track_lst[i][0] - track_lst[i+1][0]) ** 2 + (track_lst[i][1] - track_lst[i+1][1]) ** 2) ** 0.5 for i in range(len(track_lst)-1))
+                #     #print(int(distance))
+                #     if distance < 15:
+                #         공_움직임 = False
+                #     else:
+                #         공_움직임 = True
 
-                #게임은 시작했는데 아직 준비 상태가 아닐때, 영역에 놓음으로써 준비상태로 만들어주는 코드        
-                if ready == False: 
-                    if counting_regions[3]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))):
-                        #print("시작영역에 공이 들어옴")
-                        counting_regions[3]['in'] = True
-                        if len(track_lst) == 30:
-                            #print("30프레임 이상 공이 들어옴")
-                            distance = sum(((track_lst[i][0] - track_lst[i+1][0]) ** 2 + (track_lst[i][1] - track_lst[i+1][1]) ** 2) ** 0.5 for i in range(len(track_lst)-1))
-                            #distance = ((track_lst[0][0] - track_lst[-1][0]) ** 2 + (track_lst[0][1] - track_lst[-1][1]) ** 2) ** 0.5
-                            if distance < 15:
-                                ready = True
-                                print("하하하하하하 공들어 왔다")
-                                #print(int(distance))
-                                #print("공이 영역안에서 멈춤")
+                # #게임은 시작했는데 아직 준비 상태가 아닐때, 영역에 놓음으로써 준비상태로 만들어주는 코드        
+                # if ready == False: 
+                #     if counting_regions[3]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))):
+                #         #print("시작영역에 공이 들어옴")
+                #         counting_regions[3]['in'] = True
+                #         if len(track_lst) == 30:
+                #             #print("30프레임 이상 공이 들어옴")
+                #             distance = sum(((track_lst[i][0] - track_lst[i+1][0]) ** 2 + (track_lst[i][1] - track_lst[i+1][1]) ** 2) ** 0.5 for i in range(len(track_lst)-1))
+                #             #distance = ((track_lst[0][0] - track_lst[-1][0]) ** 2 + (track_lst[0][1] - track_lst[-1][1]) ** 2) ** 0.5
+                #             if distance < 15:
+                #                 ready = True
+                #                 print("하하하하하하 공들어 왔다")
+                #                 #print(int(distance))
+                #                 #print("공이 영역안에서 멈춤")
                 
-                if ready == True:
+                # if ready == True:
                    
-                    if 공_움직임 == True: 
-                        print("공 움직이는 중")
-                        굴러가는_상태 = True
+                #     if 공_움직임 == True: 
+                #         print("공 움직이는 중")
+                #         굴러가는_상태 = True
                         
 
-                        ready = False #공이 굴러가면 준비상태가 아니게 됨
+                #         ready = False #공이 굴러가면 준비상태가 아니게 됨
                 
-                if 굴러가는_상태 == True:
+                # if 굴러가는_상태 == True:
                     
-                    if counting_regions[0]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))) or counting_regions[1]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))):
-                        공_홀_안에_들어감 = True
-                        #굴러가는_상태 = False
+                #     if counting_regions[0]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))) or counting_regions[1]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))):
+                #         공_홀_안에_들어감 = True
+                #         #굴러가는_상태 = False
                     
-                    elif counting_regions[2]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))) == False:
-                        #score += 1
-                        #print(f"나감 {score}")
-                        골_그린존_바깥에_나감 = True
-                        #굴러가는_상태 = False
+                #     elif counting_regions[2]['polygon'].contains(Point((bbox_center[0], bbox_center[1]))) == False:
+                #         #score += 1
+                #         #print(f"나감 {score}")
+                #         골_그린존_바깥에_나감 = True
+                #         #굴러가는_상태 = False
                     
-                    elif 공_움직임 == False: #굴러가다가 그린존에서 멈췄을때
-                        #score += 1
-                        #print(f"공 멈춤 {score}")
-                        #굴러가는_상태 = False   
-                        ready = True    
+                #     elif 공_움직임 == False: #굴러가다가 그린존에서 멈췄을때
+                #         #score += 1
+                #         #print(f"공 멈춤 {score}")
+                #         #굴러가는_상태 = False   
+                #         ready = True    
 
                 # Check if detection inside region
-                for region in counting_regions:
-                    if region["polygon"].contains(Point((bbox_center[0], bbox_center[1]))):
-                        region["counts"] += 1
+                # for region in counting_regions:
+                #     if region["polygon"].contains(Point((bbox_center[0], bbox_center[1]))):
+                #         region["counts"] += 1
         else:
             all_exist = False
         # Draw regions (Polygons/Rectangles)
@@ -333,14 +423,7 @@ def run(
             )
             text_x = centroid_x - text_size[0] // 2
             text_y = centroid_y + text_size[1] // 2
-            # cv2.rectangle(
-            #     frame,
-            #     (text_x - 5, text_y - text_size[1] - 5),
-            #     (text_x + text_size[0] + 5, text_y + 5),
-            #     region_color,
-            #     -1,
-            # )
-            # q
+
             cv2.polylines(frame, [polygon_coords], isClosed=True, color=region_color, thickness=1)
 
         if view_img:
