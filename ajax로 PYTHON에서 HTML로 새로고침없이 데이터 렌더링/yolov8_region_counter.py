@@ -537,5 +537,5 @@ def main():
 
 
 if __name__ == "__main__":
-    print("메인함수실행")
+    print("메인 함수 실행")
     main()
